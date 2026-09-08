@@ -2,8 +2,7 @@
 # GUION DE CLASE — Semana 5 · Sesión 2: group_by() y Aplicaciones
 # Fundamentos de Programación para Análisis Económico · UdeC-EAN
 #
-# Nombre: [TU NOMBRE]      Fecha: [FECHA]
-#
+# Nombre: Constanza Pinilla      Fecha: Septiembre 2026
 # CÓMO USAR: corre cada línea con Cmd/Ctrl+Enter.
 #   🔵 CORRE Y OBSERVA · ✏️ COMPLETA (____) · 🔮 PREDICE · 🟢 TU TURNO · ✅ Deberías ver
 # =============================================================================
@@ -14,6 +13,8 @@ library(dplyr)
 casen <- read.csv("data/raw/casen_reducido.csv") |>
   mutate(experiencia = pmax(edad - educ - 6, 0))
 
+casen |> 
+  glimpse()
 
 # -----------------------------------------------------------------------------
 # BLOQUE A — group_by(): el cambio de significado
@@ -24,7 +25,8 @@ casen |> summarise(ing = mean(ingreso, na.rm = TRUE))
 # 🔵 CORRE Y OBSERVA — el MISMO summarise, pero un número POR REGIÓN
 casen |>
   group_by(region) |>
-  summarise(n = n(), ing = mean(ingreso, na.rm = TRUE))
+  summarise(n = n(), 
+  ing = mean(ingreso, na.rm = TRUE))
 
 # ✅ Deberías ver: 5 filas (una por región). Ñuble la más alta, con 696692.3
 
@@ -34,7 +36,7 @@ casen |>
 
 # ✏️ COMPLETA: ahora el mismo resumen, pero agrupando por género.
 casen |>
-  group_by(____) |>
+  group_by(genero, sector) |>
   summarise(n = n(), ing = mean(ingreso, na.rm = TRUE))
 
 # ✅ Deberías ver: F 29 636296.3  |  M 31 673607.1
@@ -90,7 +92,7 @@ casen |>
 # 🟢 TU TURNO: ¿cuántas personas ganan MÁS que el promedio de SU REGIÓN?
 #    Pista: crea la indicadora con mutate() agrupado y súmala.
 casen |>
-  group_by(____) |>
+  group_by(region) |>
   mutate(sobre_media = ingreso > mean(ingreso, na.rm = TRUE)) |>
   ungroup() |>
   summarise(cuantos = sum(sobre_media, na.rm = TRUE))
@@ -108,8 +110,8 @@ casen |>
   group_by(sector) |>
   summarise(n    = n(),
             prom = mean(ingreso, na.rm = TRUE),
-            med  = ____(ingreso, na.rm = TRUE),
-            desv = ____(ingreso, na.rm = TRUE))
+            med  = median(ingreso, na.rm = TRUE),
+            desv = sd(ingreso, na.rm = TRUE))
 
 # ✅ Deberías ver: 6 sectores. Agricultura la más baja (447846),
 #    Educación la más alta (908857): el doble.
@@ -134,7 +136,7 @@ casen |> arrange(desc(ingreso)) |> select(region, educ, ingreso) |> head(3)
 casen |>
   group_by(region) |>
   summarise(ing = mean(ingreso, na.rm = TRUE)) |>
-  ____(desc(ing))
+  arrange(desc(ing))
 
 # ✅ Deberías ver el ranking: Ñuble, Maule, Araucanía, Metropolitana, Biobío
 
@@ -171,8 +173,8 @@ casen |>
 # 🟢 TU TURNO: completa la cadena.
 casen |>
   filter(!is.na(ingreso)) |>                    # 1. fuera los sin dato
-  mutate(ing_por_educ = ingreso / ____) |>      # 2. ingreso por año de educación
-  group_by(____) |>                             # 3. partir por sector
+  mutate(ing_por_educ = ingreso / educ) |>      # 2. ingreso por año de educación
+  group_by(sector) |>                             # 3. partir por sector
   summarise(n = n(), ipe = mean(ing_por_educ)) |>   # 4. resumir
   filter(n >= 8) |>                             # 5. fuera los grupos chicos
   arrange(desc(ipe))                            # 6. ranking

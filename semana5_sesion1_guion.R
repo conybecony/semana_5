@@ -2,7 +2,7 @@
 # GUION DE CLASE — Semana 5 · Sesión 1: Los 5 Verbos de dplyr
 # Fundamentos de Programación para Análisis Económico · UdeC-EAN
 #
-# Nombre: [TU NOMBRE]      Fecha: [FECHA]
+# Nombre: Constanza Pinilla     Fecha: Septiembre 2026
 #
 # CÓMO USAR: corre cada línea con Cmd/Ctrl+Enter.
 #   🔵 CORRE Y OBSERVA · ✏️ COMPLETA (____) · 🔮 PREDICE · 🟢 TU TURNO · ✅ Deberías ver
@@ -10,6 +10,7 @@
 
 # 🔵 CORRE Y OBSERVA — cargar el paquete (instalar solo una vez, con install.packages)
 library(dplyr)
+library(tidyverse)
 
 # Este script se ejecuta desde la RAÍZ del proyecto (no desde guiones_clase/)
 casen    <- read.csv("data/raw/casen_reducido.csv")
@@ -29,6 +30,9 @@ sum(is.na(casen$ingreso))
 # 🔵 CORRE Y OBSERVA
 select(casen, region, educ, ingreso)
 head(select(casen, region, educ, ingreso), 3)
+glimpse(casen) #echar un vistazo
+select(casen, region, ingreso, everything())
+
 
 # ✅ Deberías ver: 60 filas, pero solo 3 columnas.
 
@@ -36,7 +40,7 @@ head(select(casen, region, educ, ingreso), 3)
 select(casen, -genero)
 
 # ✏️ COMPLETA: quédate solo con edad e ingreso.
-select(casen, ____, ____)
+select(casen, edad, ingreso)
 
 # 💡 select() nunca cambia el número de FILAS, solo de columnas.
 
@@ -44,6 +48,9 @@ select(casen, ____, ____)
 # --- Elegir columnas por PATRÓN (cuando son muchas) --------------------------
 # 🔵 CORRE Y OBSERVA — mira los nombres de la base desagregada
 names(ingresos)
+head(select(ingresos, starts_with("ing")),3)
+names(select(ingresos, ends_with("total")))
+names(select(ingresos, contains("sub")))
 
 # ✅ Deberías ver 10 columnas, CUATRO de ellas empezando con "ing_".
 
@@ -62,7 +69,7 @@ names(select(ingresos, where(is.numeric)))
 #    no sean ingresos. Los dos selectores NO son intercambiables.
 
 # ✏️ COMPLETA: quédate con las columnas de TEXTO.
-names(select(ingresos, where(____)))
+names(select(ingresos, where(is.character)))
 
 # ✅ Deberías ver: region, sector, genero
 
@@ -75,6 +82,7 @@ names(select(ingresos, where(____)))
 # -----------------------------------------------------------------------------
 # 🔵 CORRE Y OBSERVA
 filter(casen, region == "Ñuble")
+filter(casen, region %in% c("Ñuble", "Maule"))
 nrow(filter(casen, region == "Ñuble"))
 
 # ✅ Deberías ver: 15 filas (los casos de Ñuble).
@@ -87,12 +95,17 @@ nrow(filter(casen, educ >= 16))
 nrow(filter(casen, region == "Ñuble", educ > 12))
 
 # ✏️ COMPLETA: cuántas MUJERES ("F") hay en el sector "Servicios".
-nrow(filter(casen, genero == ____, sector == ____))
+nrow(filter(casen, genero == "F", sector == "Servicios"))
+table(casen$sector) #para saber como se llama la variable
 
 # ⚠️ GOTCHA: == compara, = asigna. Y para texto SIEMPRE entre comillas.
 
+mis_regiones <- c("Ñuble", "Biobío")
+
 # 🔵 CORRE Y OBSERVA — comparaciones muy útiles
 nrow(filter(casen, region %in% c("Ñuble", "Biobío")))   # pertenece a la lista
+nrow(filter(casen, region %in% mis_regiones))           # lo mismo de arriba
+
 nrow(filter(casen, is.na(ingreso)))                     # los que NO tienen dato
 nrow(filter(casen, !is.na(ingreso)))                    # los que SÍ lo tienen
 
@@ -111,7 +124,7 @@ nrow(filter(ingresos, region == "Ñuble" | region == "Biobío"))  # basta UNA
 #    Para leerlas: & ACHICA el resultado (pide más); | lo AGRANDA (pide menos).
 
 # 🔮 PREDICE: estas dos líneas se parecen mucho. ¿Dan el mismo número?
-#    Anota tu predicción ANTES de correrlas: ______________
+#    Anota tu predicción ANTES de correrlas: no dan el mismo número
 
 nrow(filter(ingresos, (region == "Ñuble" | region == "Biobío") & educ > 12))
 nrow(filter(ingresos, region == "Ñuble" | region == "Biobío" & educ > 12))
@@ -125,7 +138,7 @@ nrow(filter(ingresos, region == "Ñuble" | region == "Biobío" & educ > 12))
 #    REGLA: si mezclas & con |, pon paréntesis SIEMPRE.
 
 # 🟢 TU TURNO: ¿cuántas personas reciben subsidios Y trabajan más de 40 horas?
-nrow(filter(ingresos, ing_subsidios > 0 ____ horas > 40))
+nrow(filter(ingresos, ing_subsidios > 0 & horas > 40))
 
 # ✅ Deberías ver: 14
 
@@ -141,15 +154,25 @@ nrow(filter(ingresos, ing_subsidios > 0 & ing_capital > 0))
 # BLOQUE C — mutate(): crear COLUMNAS
 # -----------------------------------------------------------------------------
 # 🔵 CORRE Y OBSERVA
-casen <- mutate(casen, ingreso_miles = ingreso / 1000)
+casen <- mutate(casen, 
+                ingreso_miles = ingreso / 1000,
+                log_ingreso = round(log(ingreso),2)
+                )
+
+# select(casen, -ingreso_miles, -log_ingreso) para volver a la original
 head(casen$ingreso_miles, 3)
 
 # ✅ Deberías ver: 520 467 NA   <- el NA se propaga, y eso es correcto.
 
+mutate(casen, 
+       pobre        = ingreso < 216000, #binaria (lógica)
+       grupo_etario = if_else (edad < 30, "joven", "adulto") # categoría condicional
+       )
+
 # La variable estrella de la economía laboral: experiencia potencial de Mincer
 # (los años que una persona pudo haber trabajado: edad, menos años de estudio,
 #  menos los 6 años previos a entrar al colegio)
-casen <- mutate(casen, experiencia = pmax(edad - educ - 6, 0))
+casen <- mutate(casen, experiencia = pmax(edad - educ - 6, 0)) #Comparar dos números
 head(casen$experiencia, 5)
 summary(casen$experiencia)
 
@@ -194,7 +217,7 @@ table(casen$nivel_educ)
 incompleto <- mutate(casen,
                      prueba = case_when(
                        educ <  12 ~ "bajo",
-                       educ >  12 ~ "alto"
+                       educ >  12 ~ "alto",
                      ))
 sum(is.na(incompleto$prueba))
 
@@ -208,7 +231,7 @@ casen <- mutate(casen,
                 tramo = case_when(
                   edad < 30 ~ "joven",
                   edad < 45 ~ "adulto",
-                  ____      ~ "mayor"
+                  TRUE      ~ "mayor"
                 ))
 table(casen$tramo)
 
@@ -238,8 +261,8 @@ mean(casen$ingreso, na.rm = TRUE)
 summarise(casen,
           n         = n(),
           ing_prom  = mean(ingreso, na.rm = TRUE),
-          ing_med   = ____(ingreso, na.rm = TRUE),
-          educ_prom = mean(____))
+          ing_med   = median(ingreso, na.rm = TRUE),
+          educ_prom = mean(educ))
 
 # ✅ Deberías ver: n = 60 | ing_prom = 655290.9 | ing_med = 672000 | educ_prom = 12.73
 
@@ -258,14 +281,18 @@ summarise(filter(casen, region == "Ñuble"),
 #    "toma casen, Y LUEGO filtra Ñuble, Y LUEGO resume"
 casen |>
   filter(region == "Ñuble") |>
-  summarise(n = n(), ing = mean(ingreso, na.rm = TRUE))
+  summarise(
+    n = n(), 
+    ing = mean(ingreso, na.rm = TRUE)
+    )
+
 
 # ✅ Deberías ver: n = 15 | ing = 696692.3   (el mismo número, pero legible)
 
 # 🟢 TU TURNO: escribe una cadena que calcule el ingreso promedio y el n
 #    de las personas con educ >= 16.
 casen |>
-  ____(____) |>
+  filter(educ >= 16) |>
   summarise(n = n(), ing = mean(ingreso, na.rm = TRUE))
 
 # ✅ Deberías ver: n = 12 | ing = 812181.8
