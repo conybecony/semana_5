@@ -2,8 +2,8 @@
 # Laboratorio Semana 5 — Un análisis completo con dplyr
 # Fundamentos de Programación para Análisis Económico · UdeC-EAN
 #
-# Autor: [TU NOMBRE]
-# Fecha: [FECHA]
+# Autor: Constanza Pinilla
+# Fecha: Septiembre 2026
 #
 # Objetivo: responder UNA pregunta económica de principio a fin usando los
 #           cinco verbos, group_by() y el pipe. Es el ensayo directo de la
@@ -31,7 +31,7 @@ ingresos <- read.csv("data/raw/casen_ingresos.csv")   # mismas 60 personas,
 #
 # TODO: escribe tu pregunta aquí.
 #
-# MI PREGUNTA: ______________________________________________________________
+# MI PREGUNTA: ¿A qué edad las mujeres ganan más ingreso?
 #
 # Ejemplos del nivel esperado (elige otra, no copies):
 #   - ¿En qué región rinde más cada año de educación?
@@ -47,10 +47,10 @@ ingresos <- read.csv("data/raw/casen_ingresos.csv")   # mismas 60 personas,
 str(casen)
 dim(casen)
 summary(casen$ingreso)      # fíjate en la línea NA's
-sum(is.na(casen$____))      # ¿cuántos faltantes hay en ingreso?
+sum(is.na(casen$ingreso))      # ¿cuántos faltantes hay en ingreso?
 
 # TODO: anota lo que encontraste.
-# FILAS: ____   COLUMNAS: ____   FALTANTES EN INGRESO: ____
+# FILAS: 60   COLUMNAS: 6   FALTANTES EN INGRESO: 5
 
 
 # -----------------------------------------------------------------------------
@@ -62,13 +62,15 @@ sum(is.na(casen$____))      # ¿cuántos faltantes hay en ingreso?
 
 names(ingresos)
 
-names(select(ingresos, ____("ing")))       # por cómo EMPIEZA el nombre
-names(select(ingresos, where(____)))       # por el TIPO de contenido (numérico)
+names(select(ingresos, starts_with("ing")))       # por cómo EMPIEZA el nombre
+names(select(ingresos, where(is.numeric)))       # por el TIPO de contenido (numérico)
 
 # ✅ Deberías ver 4 columnas en el primero y 7 en el segundo.
 #
 # TODO: responde en un comentario.
-# ¿Por qué el segundo devuelve MÁS columnas que el primero? ___________________
+# ¿Por qué el segundo devuelve MÁS columnas que el primero? Porque solo son las
+# columnas que son númericas y en el primero solo las que empiecen con ing 
+# que hay 4.
 #
 # ⚠️ Elegir mal el selector NO da error: el código corre igual, sobre columnas
 #    que no querías. Revisa siempre los nombres antes de seguir.
@@ -83,11 +85,18 @@ names(select(ingresos, where(____)))       # por el TIPO de contenido (numérico
 # TODO: crea la experiencia potencial de Mincer y AL MENOS una variable propia
 #       que tu pregunta necesite.
 
+ 
 casen <- casen |>
-  mutate(
-    experiencia = pmax(edad - ____ - 6, 0),
+  mutate( casen,
+    experiencia = pmax(edad - educ - 6, 0),
     # TODO: tu variable derivada (ej. ingreso_por_educ, superior, tramo_edad...)
-    ____ = ____
+    grupo_etario = case_when(
+      edad <= 25 ~ "menor de 25",
+      edad <= 30 ~ "entre 25 y 30",
+      edad <= 40 ~ "entre 30 y 40",
+      edad <= 50 ~ "entre 40 y 50",
+      TRUE       ~ "arriba de 50"
+    )
   )
 
 # Recuerda las dos herramientas para clasificar (S5S1):
@@ -109,7 +118,8 @@ casen <- casen |>
 
 # TODO: verifica que quedaron bien creadas y que NINGUNA quedó en NA.
 summary(casen$experiencia)
-table(casen$nivel_educ, useNA = "ifany")
+table(casen$nivel_ingreso, useNA = "ifany")
+summary(casen$nivel_ingreso)
 
 # ✅ Deberías ver, en table(): 23 sin media completa, 7 media completa,
 #    30 superior. Si aparece una columna <NA>, tu case_when() dejó filas fuera.
@@ -122,13 +132,14 @@ table(casen$nivel_educ, useNA = "ifany")
 #       group_by() + summarise() + arrange(), y reportar n().
 
 resultado <- casen |>
-  filter(____) |>            # ¿a quiénes necesitas? (¡ojo con los NA!)
-  group_by(____) |>          # ¿por qué grupo se parte la pregunta?
+  filter( genero == "F" ) |>            # ¿a quiénes necesitas? (¡ojo con los NA!)
+  group_by(grupo_etario) |>          # ¿por qué grupo se parte la pregunta?
   summarise(
     n   = n(),               # NUNCA lo omitas
-    ____ = ____
+    ingreso_mujer = mean(ingreso, na.rm = TRUE)
   ) |>
-  arrange(desc(____))
+  arrange(desc(ingreso_mujer))
+
 
 resultado
 
@@ -153,12 +164,22 @@ nrow(filter(casen, region == "Ñuble" | region == "Biobío" & educ > 12))
 # Antes de interpretar, revisa la columna n.
 #
 # TODO: responde en comentarios.
-# ¿Algún grupo tiene n muy chico (menos de 8)? ¿Cuál? ____
+# ¿Algún grupo tiene n muy chico (menos de 8)? ¿Cuál? el grupo entre 25 y 30, 
+# el de entre 40 y 50, por ultim menor de 25.
 # ¿Ese promedio es confiable? ¿Qué haces al respecto? ____
 #
 # TODO (si corresponde): agrega un filter(n >= 8) después del summarise y
-#       compara. ¿Cambia el ranking?
+#
 
+resultado <- casen |>
+  filter( genero == "F" ) |>            
+  group_by(grupo_etario) |>          
+  summarise(
+    n   = n(),               
+    ingreso_mujer = mean(ingreso, na.rm = TRUE)
+  ) |>
+  filter(n >= 8) |> 
+  arrange(desc(ingreso_mujer))
 
 # -----------------------------------------------------------------------------
 # PASO 6 — Interpretar (la parte que de verdad importa)
@@ -171,12 +192,16 @@ nrow(filter(casen, region == "Ñuble" | region == "Biobío" & educ > 12))
 #   3. Al menos una limitación de estos datos.
 #
 # INTERPRETACIÓN:
-# ____________________________________________________________________________
-# ____________________________________________________________________________
-# ____________________________________________________________________________
-# ____________________________________________________________________________
-#
-# LIMITACIÓN: __________________________________________________________________
+
+# las mujeres entre los 25 y 30 años presentan un ingreso promedio de 727750 pesos
+# este resultado se asocia a un mayor ingreso promedio dentro del grupo_etario,
+# sin embargo, no representa a la población general de mujeres con ese rango de
+# edad, además no se puede afirmar que tener entre 25 y 30 años cause mayor 
+# ingreso.
+
+
+# LIMITACIÓN: no se consideran otras variables que también podrían estar relacionadas
+# con el ingreso, como educación, experiencia laboral o sector.
 
 
 # -----------------------------------------------------------------------------
@@ -189,13 +214,13 @@ nrow(filter(casen, region == "Ñuble" | region == "Biobío" & educ > 12))
 # TODO: completa el nombre del archivo y guárdalo.
 
 dir.create("data/processed", showWarnings = FALSE)
-write.csv(casen, "data/processed/____.csv", row.names = FALSE)
+write.csv(resultado, "data/processed/casen_s5_ing_f.csv", row.names = FALSE)
 
 # ⚠️ NO lo llames casen_limpio.csv: ese nombre lo ocupa el laboratorio de la
 #    Semana 6 y lo sobrescribirías. Usa algo como casen_s5_derivadas.csv.
 
 # TODO: comprueba que el archivo quedó y que se puede volver a leer.
-file.exists("data/processed/____.csv")
+file.exists("data/processed/casen_s5_ing_f.csv")
 
 # ✅ Deberías ver: TRUE
 #
@@ -204,7 +229,9 @@ file.exists("data/processed/____.csv")
 #    tener que volver a correr toda la limpieza.
 #
 # TODO: responde en un comentario.
-# ¿Por qué NO guardamos encima de data/raw/casen_reducido.csv? ______________
+# ¿Por qué NO guardamos encima de data/raw/casen_reducido.csv? 
+# porque es un archivo modificado, los archivos en raw se dejan como están.
+
 
 
 # -----------------------------------------------------------------------------
@@ -216,7 +243,7 @@ file.exists("data/processed/____.csv")
 # TODO (opcional):
 
 # casen |>
-#   group_by(____, ____) |>
+#   group_by(genero, sector) |>
 #   summarise(n = n(), ing = mean(ingreso, na.rm = TRUE), .groups = "drop") |>
 #   arrange(desc(ing))
 
